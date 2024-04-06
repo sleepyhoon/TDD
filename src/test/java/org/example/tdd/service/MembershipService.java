@@ -1,24 +1,28 @@
 package org.example.tdd.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.tdd.domain.MembershipAddResponse;
 import org.example.tdd.MembershipType;
 import org.example.tdd.domain.MembershipDetailResponse;
 import org.example.tdd.repository.MembershipRepository;
 import org.example.tdd.domain.Membership;
-import org.example.tdd.MembershipErrorResult;
-import org.example.tdd.MembershipException;
+import org.example.tdd.error.MembershipErrorResult;
+import org.example.tdd.error.MembershipException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MembershipService {
-    private MembershipRepository membershipRepository;
+    private final MembershipRepository membershipRepository;
+    private final PointService ratePointService;
+    @Transactional
     public MembershipAddResponse addMembership(final String userId, final MembershipType membershipType, final Integer point){
-        log.info("Adding membership for userId: {}, membershipType: {}, point: {}", userId, membershipType, point);
         final Membership result = membershipRepository.findByUserIdAndMembershipType(userId,membershipType);
         if(result!=null){
             throw new MembershipException(MembershipErrorResult.DUPLICATED_MEMBERSHIP_REGISTER);
@@ -46,6 +50,38 @@ public class MembershipService {
                         .createdAt(v.getCreatedAt())
                         .build()
                 ).collect(Collectors.toList());
+    }
+
+    public MembershipDetailResponse getMembership(final Long membershipId,final String userId){
+        final Membership membership = membershipRepository.findById(membershipId)
+                .orElseThrow(()->new MembershipException(MembershipErrorResult.MEMBERSHIP_NOT_FOUND));
+        if(!membership.getUserId().equals(userId)) {
+            throw new MembershipException(MembershipErrorResult.NOT_MEMBERSHIP_OWNER);
+        }
+        return MembershipDetailResponse.builder()
+                .id(membership.getId())
+                .membershipType(membership.getMembershipType())
+                .point(membership.getPoint())
+                .createdAt(membership.getCreatedAt())
+                .build();
+    }
+    @Transactional
+    public void removeMembership(Long membershipId,String userId) {
+        final Membership membership = membershipRepository.findById(membershipId)
+                .orElseThrow(()-> new MembershipException(MembershipErrorResult.MEMBERSHIP_NOT_FOUND));
+        if(!membership.getUserId().equals(userId)) {
+            throw new MembershipException(MembershipErrorResult.NOT_MEMBERSHIP_OWNER);
+        }
+        membershipRepository.deleteById(membershipId);
+    }
+    @Transactional
+    public void accumulateMembershipPoint(final Long membershipId, final String userId, final int amount) {
+        final Membership membership = membershipRepository.findById(membershipId)
+                .orElseThrow(()->new MembershipException(MembershipErrorResult.MEMBERSHIP_NOT_FOUND));
+        if(!membership.getUserId().equals(userId))
+            throw new MembershipException(MembershipErrorResult.NOT_MEMBERSHIP_OWNER);
+        final int additionalAmount = ratePointService.calculateAmount(amount);
+        membership.setPoint(additionalAmount + membership.getPoint());
     }
 }
 

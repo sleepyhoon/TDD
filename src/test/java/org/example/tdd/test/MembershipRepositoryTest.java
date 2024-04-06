@@ -75,4 +75,18 @@ class MembershipRepositoryTest {
         List<Membership> list = membershipRepository.findByUserId("userId");
         assertThat(list.size()).isEqualTo(2);
     }
+
+    @Test
+    void 멤버쉽생성후삭제() {
+        //given
+        final Membership membership = Membership.builder()
+                .userId("userId")
+                .membershipType(MembershipType.KAKAO)
+                .point(10000)
+                .build();
+        final Membership savedMembership = membershipRepository.save(membership);
+        //when
+        membershipRepository.deleteById(savedMembership.getId());
+        //then
+    }
 }

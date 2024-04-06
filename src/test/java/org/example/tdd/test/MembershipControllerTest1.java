@@ -7,6 +7,8 @@ import org.example.tdd.*;
 import org.example.tdd.controller.MembershipController;
 import org.example.tdd.domain.MembershipAddResponse;
 import org.example.tdd.domain.MembershipRequest;
+import org.example.tdd.error.MembershipErrorResult;
+import org.example.tdd.error.MembershipException;
 import org.example.tdd.handler.GlobalExceptionHandler;
 import org.example.tdd.service.MembershipService;
 import org.junit.jupiter.api.BeforeEach;

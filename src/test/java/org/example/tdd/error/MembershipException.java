@@ -1,4 +1,4 @@
-package org.example.tdd;
+package org.example.tdd.error;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
